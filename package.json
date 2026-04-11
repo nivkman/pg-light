@@ -1,0 +1,42 @@
+{
+  "name": "@entergreat/pg-light",
+  "description": "A lightweight PostgreSQL connection utility with one-line setup. Simple, clean, and production-ready.",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entergreat/pg-light.git"
+  },
+  "keywords": [
+    "postgresql",
+    "postgres",
+    "pg",
+    "database",
+    "connection",
+    "pool",
+    "lightweight",
+    "simple",
+    "one-liner",
+    "sql",
+    "query",
+    "node",
+    "nodejs"
+  ],
+  "author": "EnterGreat",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/entergreat/pg-light/issues"
+  },
+  "homepage": "https://github.com/entergreat/pg-light#readme",
+  "dependencies": {
+    "pg": "^8.11.3",
+    "logger-standard": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
