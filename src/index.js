@@ -1,4 +1,5 @@
 import pg from 'pg';
+import knex from 'knex';
 import { Logger } from 'logger-standard';
 import { Model } from './model.js';
 
@@ -21,14 +22,21 @@ function createLogger(options) {
   return new Logger({ service, logLevel });
 }
 
+function createKnexInstance(config) {
+  const connection = isConnectionString(config) ? config : createPoolConfig(config);
+  return knex({ client: 'pg', connection });
+}
+
 class PgLight {
   #pool = null;
   #logger = null;
+  #knex = null;
   _logger = null;
 
-  constructor(pool, logger) {
+  constructor(pool, logger, knexInstance) {
     this.#pool = pool;
     this.#logger = logger;
+    this.#knex = knexInstance;
     this._logger = logger;
   }
 
@@ -65,6 +73,7 @@ class PgLight {
 
   async disconnect() {
     await this.#pool.end();
+    await this.#knex.destroy();
     this.#logger.info('Database connection closed');
   }
 
@@ -74,6 +83,15 @@ class PgLight {
 
   model(tableName) {
     return new Model(this, tableName);
+  }
+
+  builder(tableName) {
+    this.#logger.debug(`Creating query builder for ${tableName}`);
+    return this.#knex(tableName);
+  }
+
+  get knex() {
+    return this.#knex;
   }
 }
 
@@ -91,8 +109,9 @@ export async function connectDB(config, options = {}) {
   const logger = createLogger(options);
   const poolConfig = createPoolConfig(config);
   const pool = new Pool(poolConfig);
+  const knexInstance = createKnexInstance(config);
   await testConnection(pool, logger);
-  return new PgLight(pool, logger);
+  return new PgLight(pool, logger, knexInstance);
 }
 
 export { Model };

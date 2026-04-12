@@ -9,7 +9,8 @@ A lightweight PostgreSQL connection utility with one-line setup. Simple, clean, 
 - 🏊 **Connection Pooling** - Built-in connection pool management
 - 🔄 **Transaction Support** - Easy transaction handling with auto-rollback
 - 📊 **Query Interface** - Simple query execution
-- 🎨 **Mongoose-like Models** - Friendly API for common CRUD operations (NEW!)
+- 🎨 **Mongoose-like Models** - Friendly API for common CRUD operations
+- 🔨 **Knex Query Builder** - Powerful chainable API for complex queries (NEW!)
 - 📝 **Integrated Logging** - Uses `logger-standard` for consistent logging
 - 🧹 **Clean Code** - All functions ≤7 lines
 - 🎯 **TypeScript Ready** - JSDoc types for better IDE support
@@ -38,7 +39,7 @@ console.log(result.rows);
 await db.disconnect();
 ```
 
-### Mongoose-like Models (Recommended)
+### Mongoose-like Models (For Simple CRUD)
 
 ```js
 import { connectDB } from '@entergreat/pg-light';
@@ -54,6 +55,37 @@ const users = await User.find({ active: true });
 const user = await User.findById(1);
 await User.updateById(1, { name: 'Jane' });
 await User.deleteById(1);
+
+await db.disconnect();
+```
+
+### Knex Query Builder (For Complex Queries)
+
+```js
+import { connectDB } from '@entergreat/pg-light';
+
+const db = await connectDB('postgresql://user:pass@localhost:5432/mydb');
+
+// Complex queries with Knex chainable API
+const popularPosts = await db.builder('posts')
+  .select('posts.*', 'users.name as author')
+  .join('users', 'posts.user_id', 'users.id')
+  .where('posts.views', '>', 1000)
+  .whereIn('posts.category', ['tech', 'science'])
+  .orderBy('posts.views', 'desc')
+  .limit(10);
+
+// Aggregations
+const stats = await db.builder('orders')
+  .count('* as total_orders')
+  .sum('amount as revenue')
+  .where('status', 'completed');
+
+// Transactions
+await db.knex.transaction(async (trx) => {
+  const [user] = await trx('users').insert({ name: 'Alice' }).returning('*');
+  await trx('posts').insert({ user_id: user.id, title: 'First Post' });
+});
 
 await db.disconnect();
 ```
@@ -182,6 +214,64 @@ Create a Mongoose-like model for a database table. Returns a `Model` instance wi
 ```js
 const User = db.model('users');
 const Post = db.model('posts');
+```
+
+#### `builder(tableName)`
+
+Create a Knex query builder for complex queries. Returns a Knex query builder instance.
+
+```js
+// SELECT with WHERE and JOIN
+const results = await db.builder('posts')
+  .select('posts.*', 'users.name as author')
+  .join('users', 'posts.user_id', 'users.id')
+  .where('posts.published', true)
+  .orderBy('posts.created_at', 'desc')
+  .limit(10);
+
+// Aggregations
+const stats = await db.builder('orders')
+  .select('user_id')
+  .count('* as order_count')
+  .sum('total as revenue')
+  .groupBy('user_id')
+  .having('order_count', '>', 5);
+
+// INSERT
+const [user] = await db.builder('users')
+  .insert({ name: 'Alice', email: 'alice@example.com' })
+  .returning('*');
+
+// UPDATE
+await db.builder('users')
+  .where({ id: 1 })
+  .update({ last_login: db.knex.fn.now() });
+
+// DELETE
+await db.builder('users')
+  .where('active', false)
+  .delete();
+```
+
+See [Knex Query Builder Documentation](https://knexjs.org/guide/query-builder.html) for full API.
+
+#### `knex`
+
+Get the Knex instance for advanced usage, raw queries, and transactions.
+
+```js
+// Raw queries
+const result = await db.knex.raw('SELECT NOW()');
+
+// Transactions
+await db.knex.transaction(async (trx) => {
+  const [user] = await trx('users').insert({ name: 'Bob' }).returning('*');
+  await trx('logs').insert({ user_id: user.id, action: 'created' });
+});
+
+// Knex utility functions
+const now = db.knex.fn.now();
+const count = db.knex.count('* as total');
 ```
 
 ### Model Methods
@@ -406,6 +496,192 @@ console.log('Posts with comment counts:', postsWithComments.rows);
 
 await db.disconnect();
 ```
+
+### Knex Query Builder Examples
+
+```js
+import { connectDB } from '@entergreat/pg-light';
+
+const db = await connectDB(process.env.DATABASE_URL);
+
+// SIMPLE QUERIES
+
+// Select with WHERE
+const activeUsers = await db.builder('users')
+  .select('*')
+  .where({ active: true })
+  .orderBy('created_at', 'desc');
+
+// Select specific columns
+const userEmails = await db.builder('users')
+  .select('id', 'name', 'email')
+  .where('age', '>', 25)
+  .limit(10);
+
+// JOINS
+
+const postsWithAuthors = await db.builder('posts')
+  .select('posts.*', 'users.name as author_name')
+  .join('users', 'posts.user_id', 'users.id')
+  .where('posts.published', true)
+  .orderBy('posts.views', 'desc')
+  .limit(20);
+
+// Multiple JOINs with aggregation
+const postsWithStats = await db.builder('posts')
+  .select('posts.*', 'users.name as author')
+  .count('comments.id as comment_count')
+  .leftJoin('users', 'posts.user_id', 'users.id')
+  .leftJoin('comments', 'posts.id', 'comments.post_id')
+  .groupBy('posts.id', 'users.name')
+  .having(db.knex.raw('COUNT(comments.id) > ?', [5]));
+
+// COMPLEX WHERE CLAUSES
+
+const filtered = await db.builder('users')
+  .select('*')
+  .where('active', true)
+  .andWhere('age', '>=', 18)
+  .whereIn('role', ['admin', 'moderator'])
+  .whereNotNull('email')
+  .where(function() {
+    this.where('name', 'like', '%John%')
+      .orWhere('email', 'like', '%john%');
+  });
+
+// SUBQUERIES
+
+const prolificAuthors = await db.builder('users')
+  .select('users.*')
+  .whereIn('users.id', function() {
+    this.select('user_id')
+      .from('posts')
+      .groupBy('user_id')
+      .havingRaw('COUNT(*) > ?', [10]);
+  });
+
+// AGGREGATIONS
+
+const orderStats = await db.builder('orders')
+  .select(
+    db.knex.raw('AVG(total) as avg_order'),
+    db.knex.raw('SUM(total) as revenue'),
+    db.knex.raw('MIN(total) as min_order'),
+    db.knex.raw('MAX(total) as max_order')
+  )
+  .where('status', 'completed')
+  .first();
+
+// GROUP BY
+
+const topSpenders = await db.builder('orders')
+  .select('user_id')
+  .count('* as order_count')
+  .sum('total as total_spent')
+  .groupBy('user_id')
+  .orderBy('total_spent', 'desc')
+  .limit(10);
+
+// INSERT
+
+const [newUser] = await db.builder('users')
+  .insert({
+    name: 'Alice',
+    email: 'alice@example.com',
+    created_at: db.knex.fn.now()
+  })
+  .returning('*');
+
+// Bulk insert
+const newUsers = await db.builder('users')
+  .insert([
+    { name: 'Bob', email: 'bob@example.com' },
+    { name: 'Charlie', email: 'charlie@example.com' }
+  ])
+  .returning('*');
+
+// UPDATE
+
+await db.builder('users')
+  .where({ email: 'alice@example.com' })
+  .update({
+    last_login: db.knex.fn.now(),
+    login_count: db.knex.raw('login_count + 1')
+  });
+
+// DELETE
+
+const deletedCount = await db.builder('users')
+  .where('active', false)
+  .andWhere('last_login', '<', db.knex.raw("NOW() - INTERVAL '1 year'"))
+  .delete();
+
+// TRANSACTIONS
+
+await db.knex.transaction(async (trx) => {
+  const [user] = await trx('users')
+    .insert({ name: 'David', email: 'david@example.com' })
+    .returning('*');
+
+  await trx('posts').insert([
+    { user_id: user.id, title: 'Post 1' },
+    { user_id: user.id, title: 'Post 2' }
+  ]);
+
+  await trx('users')
+    .where({ id: user.id })
+    .update({ post_count: 2 });
+});
+
+// PAGINATION
+
+const page = 2;
+const perPage = 10;
+
+const results = await db.builder('users')
+  .select('*')
+  .where({ active: true })
+  .orderBy('created_at', 'desc')
+  .limit(perPage)
+  .offset((page - 1) * perPage);
+
+const [{ total }] = await db.builder('users')
+  .count('* as total')
+  .where({ active: true });
+
+console.log({
+  data: results,
+  page,
+  perPage,
+  total,
+  totalPages: Math.ceil(total / perPage)
+});
+
+await db.disconnect();
+```
+
+### Which API to Use?
+
+**Use Model API when:**
+- ✅ Simple CRUD operations (create, read, update, delete by ID)
+- ✅ Single table queries with basic conditions
+- ✅ You want the simplest, most readable code
+
+**Use Knex Builder when:**
+- ✅ Complex queries with JOINs
+- ✅ Aggregations (COUNT, SUM, AVG, etc.)
+- ✅ Subqueries
+- ✅ GROUP BY / HAVING clauses
+- ✅ Complex WHERE conditions
+- ✅ You need chainable query building
+
+**Use Raw SQL when:**
+- ✅ PostgreSQL-specific features (window functions, CTEs, etc.)
+- ✅ Highly optimized custom queries
+- ✅ Database migrations
+- ✅ You prefer writing SQL directly
+
+**Mix and match as needed!** All three approaches work together seamlessly.
 
 ### Basic CRUD Operations (Raw SQL)
 
