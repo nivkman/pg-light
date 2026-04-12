@@ -9,6 +9,7 @@ A lightweight PostgreSQL connection utility with one-line setup. Simple, clean, 
 - 🏊 **Connection Pooling** - Built-in connection pool management
 - 🔄 **Transaction Support** - Easy transaction handling with auto-rollback
 - 📊 **Query Interface** - Simple query execution
+- 🎨 **Mongoose-like Models** - Friendly API for common CRUD operations (NEW!)
 - 📝 **Integrated Logging** - Uses `logger-standard` for consistent logging
 - 🧹 **Clean Code** - All functions ≤7 lines
 - 🎯 **TypeScript Ready** - JSDoc types for better IDE support
@@ -21,6 +22,8 @@ npm install @entergreat/pg-light
 
 ## Quick Start
 
+### Raw SQL Queries
+
 ```js
 import { connectDB } from '@entergreat/pg-light';
 
@@ -32,6 +35,26 @@ const result = await db.query('SELECT * FROM users WHERE id = $1', [123]);
 console.log(result.rows);
 
 // Close connection
+await db.disconnect();
+```
+
+### Mongoose-like Models (Recommended)
+
+```js
+import { connectDB } from '@entergreat/pg-light';
+
+const db = await connectDB('postgresql://user:pass@localhost:5432/mydb');
+
+// Create a model
+const User = db.model('users');
+
+// CRUD operations - No SQL needed!
+const newUser = await User.create({ name: 'John', email: 'john@example.com' });
+const users = await User.find({ active: true });
+const user = await User.findById(1);
+await User.updateById(1, { name: 'Jane' });
+await User.deleteById(1);
+
 await db.disconnect();
 ```
 
@@ -152,9 +175,239 @@ pool.on('error', (err) => {
 });
 ```
 
+#### `model(tableName)`
+
+Create a Mongoose-like model for a database table. Returns a `Model` instance with CRUD methods.
+
+```js
+const User = db.model('users');
+const Post = db.model('posts');
+```
+
+### Model Methods
+
+The Model class provides a friendly API for common database operations without writing SQL.
+
+#### `create(data)`
+
+Insert a new record and return it.
+
+```js
+const user = await User.create({
+  name: 'Alice',
+  email: 'alice@example.com',
+  age: 25
+});
+// Returns: { id: 1, name: 'Alice', email: 'alice@example.com', age: 25 }
+```
+
+#### `find(conditions?, options?)`
+
+Find multiple records matching conditions.
+
+```js
+// Find all users
+const allUsers = await User.find();
+
+// Find with conditions
+const activeUsers = await User.find({ active: true });
+
+// Find with pagination
+const users = await User.find({ role: 'admin' }, { limit: 10, offset: 20 });
+
+// Find with limit only
+const recentUsers = await User.find({}, { limit: 5 });
+```
+
+#### `findOne(conditions)`
+
+Find a single record matching conditions.
+
+```js
+const user = await User.findOne({ email: 'alice@example.com' });
+// Returns: { id: 1, name: 'Alice', ... } or null
+```
+
+#### `findById(id)`
+
+Find a record by its primary key (id).
+
+```js
+const user = await User.findById(1);
+// Returns: { id: 1, name: 'Alice', ... } or null
+```
+
+#### `update(conditions, data)`
+
+Update records matching conditions and return updated records.
+
+```js
+const updatedUsers = await User.update(
+  { active: false },
+  { status: 'archived' }
+);
+// Returns: [{ id: 5, status: 'archived', ... }, ...]
+```
+
+#### `updateById(id, data)`
+
+Update a single record by id and return it.
+
+```js
+const user = await User.updateById(1, { last_login: new Date() });
+// Returns: { id: 1, last_login: '2026-04-12T...', ... } or null
+```
+
+#### `delete(conditions)`
+
+Delete records matching conditions and return deleted records.
+
+```js
+const deletedUsers = await User.delete({ active: false });
+// Returns: [{ id: 10, active: false, ... }, ...]
+```
+
+#### `deleteById(id)`
+
+Delete a single record by id and return it.
+
+```js
+const user = await User.deleteById(1);
+// Returns: { id: 1, ... } or null
+```
+
+#### `count(conditions?)`
+
+Count records matching conditions.
+
+```js
+// Count all records
+const totalUsers = await User.count();
+// Returns: 42
+
+// Count with conditions
+const activeCount = await User.count({ active: true });
+// Returns: 35
+```
+
 ## Usage Examples
 
-### Basic CRUD Operations
+### Model API (Mongoose-like) - Recommended
+
+```js
+import { connectDB } from '@entergreat/pg-light';
+
+const db = await connectDB(process.env.DATABASE_URL);
+
+// Create a model
+const User = db.model('users');
+
+// CREATE - Insert records
+const alice = await User.create({
+  name: 'Alice Smith',
+  email: 'alice@example.com',
+  active: true
+});
+console.log('Created:', alice);
+
+// READ - Find records
+const activeUsers = await User.find({ active: true });
+console.log('Active users:', activeUsers);
+
+const user = await User.findOne({ email: 'alice@example.com' });
+console.log('Found user:', user);
+
+const userById = await User.findById(1);
+console.log('User #1:', userById);
+
+// Pagination
+const page1 = await User.find({}, { limit: 10, offset: 0 });
+const page2 = await User.find({}, { limit: 10, offset: 10 });
+
+// UPDATE - Modify records
+await User.updateById(1, { last_login: new Date() });
+
+const updated = await User.update(
+  { active: false },
+  { status: 'archived' }
+);
+console.log('Updated:', updated);
+
+// DELETE - Remove records
+await User.deleteById(999);
+
+const deleted = await User.delete({ active: false });
+console.log('Deleted:', deleted);
+
+// COUNT - Count records
+const total = await User.count();
+const activeCount = await User.count({ active: true });
+console.log(`${activeCount} active out of ${total} total users`);
+
+await db.disconnect();
+```
+
+### Model with Relationships
+
+```js
+import { connectDB } from '@entergreat/pg-light';
+
+const db = await connectDB(process.env.DATABASE_URL);
+
+const User = db.model('users');
+const Post = db.model('posts');
+const Comment = db.model('comments');
+
+// Create a user
+const john = await User.create({
+  name: 'John Doe',
+  email: 'john@example.com'
+});
+
+// Create posts for the user
+const post1 = await Post.create({
+  user_id: john.id,
+  title: 'My First Post',
+  content: 'Hello World!',
+  published: true
+});
+
+const post2 = await Post.create({
+  user_id: john.id,
+  title: 'Another Post',
+  content: 'More content...',
+  published: false
+});
+
+// Create comments
+await Comment.create({
+  post_id: post1.id,
+  user_id: john.id,
+  content: 'Great post!'
+});
+
+// Find all posts by user
+const userPosts = await Post.find({ user_id: john.id });
+console.log(`John has ${userPosts.length} posts`);
+
+// Find published posts
+const publishedPosts = await Post.find({ published: true });
+
+// Complex queries still use raw SQL
+const postsWithComments = await db.query(`
+  SELECT p.*, COUNT(c.id) as comment_count
+  FROM posts p
+  LEFT JOIN comments c ON p.id = c.post_id
+  WHERE p.user_id = $1
+  GROUP BY p.id
+`, [john.id]);
+
+console.log('Posts with comment counts:', postsWithComments.rows);
+
+await db.disconnect();
+```
+
+### Basic CRUD Operations (Raw SQL)
 
 ```js
 import { connectDB } from '@entergreat/pg-light';

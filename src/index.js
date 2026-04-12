@@ -1,5 +1,6 @@
 import pg from 'pg';
 import { Logger } from 'logger-standard';
+import { Model } from './model.js';
 
 const { Pool } = pg;
 
@@ -23,10 +24,12 @@ function createLogger(options) {
 class PgLight {
   #pool = null;
   #logger = null;
+  _logger = null;
 
   constructor(pool, logger) {
     this.#pool = pool;
     this.#logger = logger;
+    this._logger = logger;
   }
 
   async query(text, params = []) {
@@ -68,6 +71,10 @@ class PgLight {
   getPool() {
     return this.#pool;
   }
+
+  model(tableName) {
+    return new Model(this, tableName);
+  }
 }
 
 async function testConnection(pool, logger) {
@@ -87,3 +94,5 @@ export async function connectDB(config, options = {}) {
   await testConnection(pool, logger);
   return new PgLight(pool, logger);
 }
+
+export { Model };

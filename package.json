@@ -1,6 +1,6 @@
 {
   "name": "@entergreat/pg-light",
-  "description": "A lightweight PostgreSQL connection utility with one-line setup. Simple, clean, and production-ready.",
+  "description": "Lightweight PostgreSQL client with Mongoose-like models. One-line connection, friendly CRUD API, and raw SQL support.",
   "version": "1.0.0",
   "main": "src/index.js",
   "type": "module",
@@ -24,7 +24,12 @@
     "sql",
     "query",
     "node",
-    "nodejs"
+    "nodejs",
+    "model",
+    "mongoose",
+    "orm",
+    "crud",
+    "activerecord"
   ],
   "author": "EnterGreat",
   "license": "ISC",
