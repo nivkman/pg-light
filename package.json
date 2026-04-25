@@ -1,11 +1,11 @@
 {
   "name": "@entergreat/pg-light",
   "description": "Lightweight PostgreSQL client with Mongoose-like models. One-line connection, friendly CRUD API, and raw SQL support.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "src/index.js",
   "type": "module",
   "files": ["src/"],
-  "publishConfig": { "access": "public" },
+  "publishConfig": { "access": "restricted" },
   "repository": {
     "type": "git",
     "url": "https://github.com/entergreat/pg-light.git"
