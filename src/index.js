@@ -1,6 +1,6 @@
 import pg from 'pg';
 import knex from 'knex';
-import { Logger } from '@entergreat/logger-standard';
+import { Logger } from 'logger-standard';
 import { Model } from './model.js';
 
 const { Pool } = pg;
