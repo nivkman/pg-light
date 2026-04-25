@@ -11,7 +11,7 @@ A lightweight PostgreSQL connection utility with one-line setup. Simple, clean, 
 - 📊 **Query Interface** - Simple query execution
 - 🎨 **Mongoose-like Models** - Friendly API for common CRUD operations
 - 🔨 **Knex Query Builder** - Powerful chainable API for complex queries (NEW!)
-- 📝 **Integrated Logging** - Uses `logger-standard` for consistent logging
+- 📝 **Integrated Logging** - Uses `@entergreat/logger-standard` for consistent logging
 - 🧹 **Clean Code** - All functions ≤7 lines
 - 🎯 **TypeScript Ready** - JSDoc types for better IDE support
 
@@ -866,7 +866,7 @@ app.listen(3000, () => {
 - ✅ **Minimal Learning Curve** - One function to connect, simple API
 - ✅ **Production Ready** - Built on battle-tested `pg` library
 - ✅ **Clean Code** - All functions ≤7 lines, easy to maintain
-- ✅ **Integrated Logging** - Uses `logger-standard` for consistent logging
+- ✅ **Integrated Logging** - Uses `@entergreat/logger-standard` for consistent logging
 - ✅ **Transaction Safety** - Auto-rollback on errors
 - ✅ **Connection Pooling** - Efficient resource management
 - ✅ **Parameterized Queries** - SQL injection protection
@@ -920,7 +920,7 @@ Contributions, issues, and feature requests are welcome!
 
 ## Related Packages
 
-- [logger-standard](https://www.npmjs.com/package/logger-standard) - Flexible logging utility (used internally)
+- [@entergreat/logger-standard](https://www.npmjs.com/package/@entergreat/logger-standard) - Flexible logging utility (used internally)
 - [pg](https://www.npmjs.com/package/pg) - PostgreSQL client (underlying library)
 
 ## Repository
