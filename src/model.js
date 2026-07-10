@@ -1,6 +1,6 @@
-function buildWhereClause(conditions) {
+function buildWhereClause(conditions, offset = 0) {
   const keys = Object.keys(conditions);
-  const whereParts = keys.map((key, idx) => `${key} = $${idx + 1}`);
+  const whereParts = keys.map((key, idx) => `${key} = $${idx + 1 + offset}`);
   const values = keys.map(key => conditions[key]);
   return { clause: whereParts.join(' AND '), values };
 }
@@ -32,7 +32,8 @@ function buildSetClause(data) {
 
 function buildUpdateQuery(tableName, data, conditions) {
   const { clause: setClause, values: setValues } = buildSetClause(data);
-  const { clause: whereClause, values: whereValues } = buildWhereClause(conditions);
+  // WHERE placeholders continue after the SET placeholders ($n+1, $n+2, ...)
+  const { clause: whereClause, values: whereValues } = buildWhereClause(conditions, setValues.length);
   const text = `UPDATE ${tableName} SET ${setClause} WHERE ${whereClause} RETURNING *`;
   const values = [...setValues, ...whereValues];
   return { text, values };
